@@ -1,0 +1,59 @@
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Eclipse
+.classpath
+.project
+.settings
+
+# macOS
+.DS_Store
+
+# vi
+*.swp
+
+# PadoGrid workspace
+/.addonenv.sh
+/initenv.sh
+/setenv.sh
+/vmenv.sh
+bundles
+lib
+plugins
+workspace.code-workspace
+.ipynb_checkpoints
+
+# PadoGrid workspace directories
+apps
+clusters
+docker
+groups
+k8s
+pods
+.workspace
+.cluster
+
+# Geode specifics
+*.gfs
+
+# Bundle specifics
+archive
+log
+lib
+desktop
+build
+stats
+run
+results
+*.drawio.bkp
+*.sh0
+pom.xml0
+build
