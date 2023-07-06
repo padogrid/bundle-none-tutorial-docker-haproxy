@@ -5,7 +5,7 @@ This bundle walks through steps involved in configuring a TLS termination proxy 
 ## Installing Bundle
 
 ```bash
-install_bundle -download bundle-none-tutorial-docker-haproxy
+install_bundle -download -workspace haproxy bundle-none-tutorial-docker-haproxy
 ```
 
 ## Use Case
