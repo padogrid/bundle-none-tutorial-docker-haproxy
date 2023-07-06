@@ -1,1 +1,1 @@
-This bundle serves as a template for creating a new bundle. Run `show_bundle bundle-none-template` to see instructions.
+This bundle walks through steps involved in configuring a TLS termination proxy to secure Mosquitto, Grafana, Prometheus, and Hazelcast Management Center using HAProxy.

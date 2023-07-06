@@ -1,0 +1,10 @@
+defaultCluster: mosquitto_tls
+clusters:
+  - name: mosquitto_tls
+    connections:
+      - tls:
+          cafile: ${env:PADOGRID_WORKSPACE}/docker/haproxy/tls/mosquitto/ca/mosquitto-ca.pem
+          certfile: ${env:PADOGRID_WORKSPACE}/docker/haproxy/tls/mosquitto/client/client.crt
+          keyfile: ${env:PADOGRID_WORKSPACE}/docker/haproxy/tls/mosquitto/client/client.key
+        connection:
+          serverURIs: [ssl://padogrid1:8883-8885]

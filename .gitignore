@@ -34,7 +34,7 @@ workspace.code-workspace
 # PadoGrid workspace directories
 apps
 clusters
-docker
+#docker
 groups
 k8s
 pods

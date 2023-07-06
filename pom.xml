@@ -6,12 +6,11 @@
 
 	<groupId>padogrid.addon</groupId>
 	<!-- @template: Enter your bundle name here -->
-	<artifactId>bundle-none-template</artifactId>
+	<artifactId>bundle-none-tutorial-docker-haproxy</artifactId>
 	<packaging>pom</packaging>
 	<name>${project.artifactId}</name>
 	<version>1.0.0</version>
-	<!-- @template: Enter your bundle description -->
-	<description>Bundle template</description>
+	<description>A tutorial for configuring HAProxy TLS termination for Mosquitto, Grafana, Prometheus, Hazelcast Management Center</description>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
