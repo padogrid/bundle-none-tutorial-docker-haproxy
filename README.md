@@ -142,7 +142,7 @@ If you have logged in from the browser, then for your convenience, you can open 
 - Select `/haproxy/` from the File Browser in the left pane.
 - Double click on `README.md`.
 
-✅ Now, switch workspace to `haproxy` from each terminal. All of our work will be done in this workspace.
+✔️  Now, switch workspace to `haproxy` from each terminal. All of our work will be done in this workspace.
 
 ```bash
 switch_workspace haproxy
