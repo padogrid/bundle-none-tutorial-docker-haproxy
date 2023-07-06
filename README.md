@@ -10,15 +10,16 @@ install_bundle -download bundle-none-tutorial-docker-haproxy
 
 ## Use Case
 
-HAProxy Community Edition is a free reverse proxy for TCP and HTTP-based applications with support for high availability and load balancing. HAProxy can also secure applications by terminating TLS traffic between client and server.
+HAProxy Community Edition is a free reverse proxy providing high availability and load balancing support for TCP and HTTP-based applications. HAProxy can also secure applications by terminating TLS traffic between client and server.
 
-In this bundle, we walk through the steps involved in configuring a TLS termination proxy to secure Mosquitto, Grafana, Prometheus, and Hazelcast Management Center using HAProxy. Although Mosquitto natively supports TLS, we secure it via HAProxy to demonstrate how a variety of applications can be collectively secured.
+In this bundle, we walk through the steps involved in configuring a TLS termination proxy to secure Mosquitto, Grafana, Prometheus, and Hazelcast Management Center using HAProxy. Although Mosquitto natively supports TLS, we secure it via HAProxy to demonstrate how a wide variety of applications can be collectively secured.
 
 ![HAProxy Data Flow](images/haproxy.drawio.png)
 
 ## Required Software
 
 - Docker
+- PadoGrid 0.9.25+
 
 ### Directory Tree View
 
@@ -712,6 +713,13 @@ cd_app grafana/bin_sh
 ./show_prometheus
 ```
 
+Now, import the `perf_test` dashboard into Grafana. You can view the dashboard from Grafana by selecting */Home/Dashaboards/padogrid-perf_test*.
+
+```bash
+cd_app grafana/bin_sh
+./import_dashboard
+```
+
 Once they are running, point your brower to the folloing URLs.
 
 - Grafana: <https://localhost:3001>
@@ -732,7 +740,6 @@ cd_app grafana/bin_sh
 
 # Stop all workspaces in the current RWE
 stop_rwe -quiet
-
 ```
 
 From the host OS:
@@ -749,4 +756,3 @@ docker stop padogrid2
 1. HAProxy, <http://www.haproxy.org/>
 2. Introduction to HAProxy Logging, HAProxy, <https://www.haproxy.com/blog/introduction-to-haproxy-logging>
 3. Enabling Mosquitto SSL/TLS, PadoGrid Manual, <https://github.com/padogrid/padogrid/wiki/Enabling-Mosquitto-SSL-TLS>
-4. What is the correct config settings to use BoringSSL with Hazelcast IMDG?, Stack Overflow, <https://stackoverflow.com/questions/66754539/what-is-the-correct-config-settings-to-use-boringssl-with-hazelcast-imdg>
