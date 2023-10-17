@@ -38,7 +38,7 @@ popd > /dev/null 2>&1
 
 # Generate Broker certificates
 pushd $APP_DIR/tls/mosquitto/broker > /dev/null 2>&1
-openssl genrsa -out broker.key 2048
+openssl genrsa -traditional -out broker.key 2048
 openssl req -out broker.csr -key broker.key -new -subj "/C=US/ST=NY/L=New York/O=MyCo/CN=padogrid1"
 openssl x509 -req -in broker.csr -CA ../ca/mosquitto-ca.pem -CAkey ../ca/mosquitto-ca.key -CAcreateserial -out broker.crt -days 3650
 rm broker.csr
@@ -47,10 +47,18 @@ popd > /dev/null 2>&1
 
 # Generate client certificates
 pushd $APP_DIR/tls/mosquitto/client > /dev/null 2>&1
-openssl genrsa -out client.key 2048
+openssl genrsa -traditional -out client.key 2048
 openssl req -out client.csr -key client.key -new -subj "/C=US/ST=CT/L=CT/O=SELFSIGNED/CN=padogrid2"
 openssl x509 -req -in client.csr -CA ../ca/mosquitto-ca.pem -CAkey ../ca/mosquitto-ca.key -CAcreateserial -out client.crt -days 3650
 rm client.csr
+popd > /dev/null 2>&1
+
+# Generate non-traditional hazelcast client certificates
+pushd $APP_DIR/tls/mosquitto/client > /dev/null 2>&1
+openssl genrsa -out hazelcast-client.key 2048
+openssl req -out hazelcast-client.csr -key hazelcast-client.key -new -subj "/C=US/ST=CT/L=CT/O=SELFSIGNED/CN=padogrid2"
+openssl x509 -req -in hazelcast-client.csr -CA ../ca/mosquitto-ca.pem -CAkey ../ca/mosquitto-ca.key -CAcreateserial -out hazelcast-client.crt -days 3650
+rm hazelcast-client.csr
 popd > /dev/null 2>&1
 
 echo ""
