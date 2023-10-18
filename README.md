@@ -375,7 +375,7 @@ sudo cp broker/mosquitto-openssl.pem ca/mosquitto-ca.pem /etc/ssl/certs/
 
 The `client.crt` and `client.key` files are for running clients on `padogrid2`. We'll use them to configure clients later.
 
-##### 4.1.4. Edit `/etc/haproxy/haproxy.cfg`
+##### 4.1.4. Configure server `/etc/haproxy/haproxy.cfg`
 
 This bundle includes HAProxy configuration files for both `padogrid1` and `padogrid2`. Place the `padogrid1/haproxy.cfg` in the HAProxy configuration directory, `/etc/haproxy/`.
 
@@ -398,21 +398,11 @@ Output:
 ...
 
 #---------------------------------------------------------------------
-# Front-end HTTP applications.
-#   - Hazelcast Management Center: 8081 --> 8080  
+# Client frontend HTTP endpoints which terminate TLS traffic.
 #   - Grafana: 3001 --> 3000
 #   - Prometheus: 9091 --> 9090
+#   - Hazelcast Management Center: 8081 --> 8080  
 #---------------------------------------------------------------------
-frontend hazelcast-mc-frontend
-    mode http
-    # verify none is required for priviate certificate
-    bind *:8081 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
-    default_backend hazelcast-mc-backend
-
-backend hazelcast-mc-backend
-    mode http
-    server mc1 127.0.0.1:8080 check
-
 frontend grafana-frontend
     mode http
     # verify none is required for priviate certificate
@@ -433,66 +423,44 @@ backend prometheus-backend
     mode http
     server prometheus1 127.0.0.1:9090 check
 
+frontend hazelcast-mc-frontend
+    mode http
+    # verify none is required for priviate certificate
+    bind *:8081 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
+    default_backend hazelcast-mc-backend
+
+backend hazelcast-mc-backend
+    mode http
+    server mc1 127.0.0.1:8080 check
+
 #---------------------------------------------------------------------
-# Mosquitto local frontend which proxys local traffic on uncrypted
-# ports to the encrypted remote ports.
-# (*:188x --> padogrid2:888x)
+# Mosquitto frontend which terminates SSL connections and proxies to
+# the local Mosquitto cluster. (888x --> 188x)
 #---------------------------------------------------------------------
 frontend mosquitto-c1
     mode tcp
-    bind *:1883
+    bind *:8883 ssl verify required crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
     default_backend mosquitto-s1
 
 backend mosquitto-s1
     mode tcp
-    server server1 172.17.0.2:8883 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
+    server server1 127.0.0.1:1883 check
 
 frontend mosquitto-c2
     mode tcp
-    bind *:1884
+    bind *:8884 ssl verify required crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
     default_backend mosquitto-s2
 
 backend mosquitto-s2
     mode tcp
-    server server2 172.17.0.2:8884 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
+    server server1 127.0.0.1:1884 check
 
 frontend mosquitto-c3
     mode tcp
-    bind *:1885
+    bind *:8885 ssl verify required crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
     default_backend mosquitto-s3
 
 backend mosquitto-s3
-    mode tcp
-    server server3 172.17.0.2:8885 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
-
-#---------------------------------------------------------------------
-# Mosquitto frontend which terminates SSL connections and proxys to
-# the local Mosquitto cluster. (888x --> 188x)
-#---------------------------------------------------------------------
-frontend mosquitto-c-8883
-    mode tcp
-    bind *:8883 ssl verify required crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
-    default_backend mosquitto-s-1883
-
-backend mosquitto-s-1883
-    mode tcp
-    server server1 127.0.0.1:1883 check
-
-frontend mosquitto-c-8884
-    mode tcp
-    bind *:8884 ssl verify required crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
-    default_backend mosquitto-s-8884
-
-backend mosquitto-s-8884
-    mode tcp
-    server server1 127.0.0.1:1884 check
-
-frontend mosquitto-c-8885
-    mode tcp
-    bind *:8885 ssl verify required crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
-    default_backend mosquitto-s-8885
-
-backend mosquitto-s-8885
     mode tcp
     server server1 127.0.0.1:1885 check
 ```
@@ -551,7 +519,7 @@ Output:
 ...
 
 #---------------------------------------------------------------------
-# Hazelcast frontend which proxys unencrypted traffic.
+# Hazelcast frontend which proxies unencrypted traffic.
 # (*:570x --> padogrid2:570x)
 #---------------------------------------------------------------------
 frontend hazelcast-c1
@@ -561,7 +529,7 @@ frontend hazelcast-c1
 
 backend hazelcast-s1
     mode tcp
-    server server1 172.17.0.2:5701
+    server server1 padogrid1:5701
 
 frontend hazelcast-c2
     mode tcp
@@ -570,7 +538,7 @@ frontend hazelcast-c2
 
 backend hazelcast-s2
     mode tcp
-    server server1 172.17.0.2:5702
+    server server1 padogrid1:5702
 
 frontend hazelcast-c3
     mode tcp
@@ -579,10 +547,10 @@ frontend hazelcast-c3
 
 backend hazelcast-s3
     mode tcp
-    server server1 172.17.0.2:5703
+    server server1 padogrid1:5703
 
 #---------------------------------------------------------------------
-# Mosquitto frontend  which proxys unencrypted traffic to encrypted.
+# Mosquitto frontend  which proxies unencrypted traffic to encrypted.
 # (*:188x --> padogrid2:888x)
 #---------------------------------------------------------------------
 frontend mosquitto-c1
@@ -592,7 +560,7 @@ frontend mosquitto-c1
 
 backend mosquitto-s1
     mode tcp
-    server server1 172.17.0.2:8883 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
+    server server1 padogrid1:8883 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
 
 frontend mosquitto-c2
     mode tcp
@@ -601,7 +569,7 @@ frontend mosquitto-c2
 
 backend mosquitto-s2
     mode tcp
-    server server2 172.17.0.2:8884 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
+    server server2 padogrid1:8884 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
 
 frontend mosquitto-c3
     mode tcp
@@ -610,7 +578,7 @@ frontend mosquitto-c3
 
 backend mosquitto-s3
     mode tcp
-    server server3 172.17.0.2:8885 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
+    server server3 padogrid1:8885 ssl verify none crt /etc/ssl/certs/mosquitto-openssl.pem ca-file /etc/ssl/certs/mosquitto-ca.pem
 ```
 
 ✏️  As described earlier, TLS termination cannot be achieved for Hazelcast due to the client connections being managed by Hazelcast. We configure HAProxy with unencrypted traffic, nontheless, to demonstrate the traffic flow.
