@@ -596,7 +596,7 @@ sudo haproxy -- /etc/haproxy/haproxy.cfg
 
 ##### 4.2.4. Run Mosquitto clients - SSL/TLS
 
-🚥 Data Flow: **ssl://padogrid1:888x --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
+🚦 Data Flow: **ssl://padogrid1:888x --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
 
 Let's create a `perf_test` app to connect to the Mosquitto cluster running on `padogrid1` via SSL/TLS.
 
@@ -639,7 +639,7 @@ vc_publish -config etc/pubsub.yaml -t test/topic1 -m hello
 
 ##### 4.2.5. Run Mosquitto clients - localhost
 
-🚥 Data Flow: **tcp://localhost:188x --> HAProxy (tcp://padogrid2:188x) --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
+🚦 Data Flow: **tcp://localhost:188x --> HAProxy (tcp://padogrid2:188x) --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
 
 We can also connect to the local ports (`tcp://localhost:1883-1885`) to reach the remote cluster (`ssl://padogrid1:8883-8885`).
 
