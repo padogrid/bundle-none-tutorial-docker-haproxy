@@ -758,6 +758,8 @@ From the host OS:
 ```bash
 docker stop padogrid1
 docker stop padogrid2
+docker rm padogrid1
+docker rm padogrid2
 ```
 
 ---
