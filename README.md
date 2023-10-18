@@ -82,14 +82,16 @@ Grafana, Prometheus, and Hazelcast Management Center are web clients that will c
 
 Let's start the first container named `padogrid1`.  We will use it to run Mosquitto and Hazelcast clusters along with the front end aplications, Grafana, Prometheus, and Hazelcast Management Center. HAProxy will be configured to proxy all but the Hazelcast cluster.
 
+✏️ *This bundle has been tested on PadoGrid Docker images built on Alpine. As of 0.9.28, PadoGrid images are now built on Ubuntu in order to provide better support for AI/ML. Make sure to run the PadoGrid Docker image version 0.9.27 or a prior version.*
 
 ```bash
 docker run --name padogrid1 -h padogrid1 -d \
+   --tmpfs /run \
    --mount type=volume,source=padogrid_home,target=/opt/padogrid \
    -p 8888:8888 \
    -p 8883:8883 -p 8884:8884 -p 8885:8885 \
    -p 3001:3001 -p 9091:9091 -p 8081:8080 \
-   -e PADOGRID_HTTPS_ENABLED=true padogrid/padogrid
+   -e PADOGRID_HTTPS_ENABLED=true padogrid/padogrid:0.9.27
 ```
 
 | Exposed TLS Ports | Unencrypted Ports |  For                        |
@@ -109,9 +111,10 @@ Let's now launch the second container named `padogrid2`. We will use it for runn
 
 ```bash
 docker run --name padogrid2 -h padogrid2 -d \
+   --tmpfs /run \
    --mount type=volume,source=padogrid_home,target=/opt/padogrid \
    -p 8889:8888 \
-   -e PADOGRID_HTTPS_ENABLED=true padogrid/padogrid
+   -e PADOGRID_HTTPS_ENABLED=true padogrid/padogrid:0.9.27
 ```
 
 | Exposed TLS Ports | Unencrypted Ports |  For                        |
@@ -199,6 +202,34 @@ sudo openrc sysinit
 
 # Restart rsyslog
 sudo rc-service rsyslog restart
+```
+
+Output:
+
+```console
+ * Stopping rsyslog ...                                      [ ok ]
+ * Starting rsyslog ...                                      [ ok ]
+rsyslogd: imklog: cannot open kernel log (/proc/kmsg): Operation not permitted.
+rsyslogd: activation of module imklog failed [v8.2306.0 try https://www.rsyslog.com/e/2145 ]                                                                            [ ok ]
+```
+
+If you see the `miklog` error message as shown in the output then comment it out as follows.
+
+```bash
+sudo sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
+```
+
+If you commented out the `imklog` module by executing the above command, then you need to restart `rsyslog`.
+
+```bash
+sudo rc-service rsyslog restart
+```
+
+Output:
+
+```console
+ * Stopping rsyslog ...                                      [ ok ]
+ * Starting rsyslog ...                                      [ ok ]
 ```
 
 ##### 3.1.4. Monitor log
@@ -320,20 +351,20 @@ tree
 Output:
 
 ```console
-.
-├── broker
-│   ├── broker.crt
-│   ├── broker.key
-│   └── mosquitto-openssl.pem
-├── ca
-│   ├── mosquitto-ca.pem
-│   ├── mosquitto-ca.key
-│   └── mosquitto-ca.srl
-└── client
-    ├── client.crt
-    └── client.key
+haproxy/tls/
+└── mosquitto
+    ├── broker
+    │   ├── broker.crt
+    │   ├── broker.key
+    │   └── mosquitto-openssl.pem
+    ├── ca
+    │   ├── mosquitto-ca.key
+    │   └── mosquitto-ca.pem
+    └── client
+        ├── client.crt
+        ├── client.key
+        └── lient.key
 ```
-
 
 The `mosquitto-openssl.pem` file contains both the private key and self-signed certificate for `padogrid1`. Along with the CA certificate, `mosquitto-ca.pem`, we need it for configuring HAProxy. Place `mosquitto-openssl.pem` and `mosquitto-ca.pem` in the `/etc/ssl/certs/` directory.
 
@@ -467,12 +498,6 @@ backend mosquitto-s-8885
 ```
 
 ##### 4.1.5. Restart HAProxy
-cd_docker haproxy
-cd_docker haproxy
-cd_docker haproxy
-cd_docker haproxy
-cd_docker haproxy
-cd_docker haproxy
 
 ```bash
 # via service
@@ -496,11 +521,11 @@ cd_docker haproxy/tls/mosquitto
 sudo cp broker/mosquitto-openssl.pem ca/mosquitto-ca.pem /etc/ssl/certs/
 ```
 
-##### 4.2.2. Configre client HAProxy
+##### 4.2.2. Configure client HAProxy
 
 Configure the `padogrid2` container as a client to the Mosquitto cluster running on `padogrid1`. The following shows the data flow. (`padogrid2:8883` encrypts and forwards traffic to `padogrid1:8883` which terminates SSL/TLS and forwards the decrypted traffic to the Mosquitto cluster.)
 
-**padogrid2:8883 --> padogrid1:8883 (SSL/TLS) --> padogrid1:1883**
+🚦 Data Flow:  **ssl://padogrid2:8883 --> ssl://padogrid1:8883 --> tcp://padogrid1:1883**
 
 Place the `padogrid2` HAProxy configuration file in the HAProxy configuration directory, `/etc/haproxy`.
 
@@ -601,7 +626,11 @@ kill -15 $(ps -eo pid,comm,args | grep haproxy | grep -v grep | awk '{print $1}'
 sudo haproxy -- /etc/haproxy/haproxy.cfg
 ```
 
-##### 4.2.4. Run Mosquitto clients
+##### 4.2.4. Run Mosquitto clients - SSL/TLS
+
+🚥 Data Flow: **ssl://padogrid1:888x --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
+
+Let's create a `perf_test` app to connect to the Mosquitto cluster running on `padogrid1` via SSL/TLS.
 
 ```bash
 create_app -product mosquitto -app perf_test -name perf_test_mosquitto
@@ -640,7 +669,12 @@ cd_app perf_test_mosquitto
 vc_publish -config etc/pubsub.yaml -t test/topic1 -m hello
 ```
 
-We can also connect to the local ports (`tcp://localhost:1883-1885`) to reach the remote cluster (`ssl://padogrid2:8883-8885`).
+##### 4.2.5. Run Mosquitto clients - localhost
+
+🚥 Data Flow: **tcp://localhost:188x --> HAProxy (tcp://padogrid2:188x) --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
+
+We can also connect to the local ports (`tcp://localhost:1883-1885`) to reach the remote cluster (`ssl://padogrid1:8883-8885`).
+
 
 Subscribe messages via `tcp://localhost:1883-1885`.
 
@@ -648,7 +682,7 @@ Subscribe messages via `tcp://localhost:1883-1885`.
 vc_subscribe -t test/#
 ```
 
-Publish messages via `tcp://localhost:1883-1885`.
+Publish messages via `tcp://localhost:1883-1885`. 
 
 ```bash
 vc_publish -t test/topic1 -m hello
@@ -661,9 +695,11 @@ cd_app perf_test_mosquitto/bin_sh
 ./test_group -run
 ```
 
-If you have `vc_subscribe` still running, you should see it displaying received topic headers.
+If you have `vc_subscribe` still running, you should see it displaying the received topic headers.
 
-##### 4.2.5. Create and run Hazelcast client
+##### 4.2.6. Create and run Hazelcast client
+
+🚥 Data Flow: **tcp://localhost:570x --> HAProxy (tcp://padogrid1:570x) -->  tcp://padogrid1:570x**
 
 By default, `perf_test` is configured to connect to `570x` so we simply create and run `perf_test`.
 
