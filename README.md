@@ -275,7 +275,7 @@ Replace the IP addresses with your container IP addresses. For this tutorial, th
 
 ```bash
 # Create 'mymosquitto' cluster if it does not exist
-make_cluster -product mosquitto -cluster mymosquitto
+create_cluster -product mosquitto -cluster mymosquitto
 
 # Switch cluster context
 switch_cluster mymosquitto
@@ -288,7 +288,7 @@ start_cluster
 
 ```bash
 # Create 'myhz' cluster if it does not exist
-make_cluster -product hazelcast -cluster myhz
+create_cluster -product hazelcast -cluster myhz
 
 # Switch cluster context
 switch_cluster myhz
@@ -676,7 +676,7 @@ By default, `perf_test` is configured to connect to `570x` so we simply create a
 ```bash
 # Make myhz cluster if it does not exist. We will not be starting this cluster.
 # We need it to set the cluster context so that we can run perf_test for Hazelcast.
-make_cluster -product hazelcast -cluster myhz
+create_cluster -product hazelcast -cluster myhz
 
 # Switch cluster context
 switch_cluster myhz
@@ -707,8 +707,8 @@ To run Grafana and Prometheus, we need to install them first.
 ```bash
 install_padogrid -product grafana-enterprise
 install_padogrid -product prometheus
-update_products -product grafana
-update_products -product prometheus
+update_padogrid -product grafana
+update_padogrid -product prometheus
 ```
 
 We have configured HAProxy with the default ports of Grafana and Prometheus default so that we can simply start them as follows. 
