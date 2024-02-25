@@ -26,7 +26,6 @@ In this bundle, we walk through the steps involved in configuring a TLS terminat
 ## Required Software
 
 - Docker
-- PadoGrid 0.9.25+
 
 ### Directory Tree View
 
