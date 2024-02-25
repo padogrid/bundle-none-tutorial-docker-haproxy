@@ -828,6 +828,7 @@ docker stop padogrid1
 docker stop padogrid2
 docker rm padogrid1
 docker rm padogrid2
+docker volume rm padogrid_haproxy
 ```
 
 ---
