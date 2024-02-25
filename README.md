@@ -82,64 +82,59 @@ Grafana, Prometheus, and Hazelcast Management Center are web clients that will c
 
 Let's start the first container named `padogrid1`.  We will use it to run Mosquitto and Hazelcast clusters along with the front end aplications, Grafana, Prometheus, and Hazelcast Management Center. HAProxy will be configured to proxy all but the Hazelcast cluster.
 
-✏️ *This bundle has been tested on PadoGrid Docker images built on Alpine. As of 0.9.28, PadoGrid images are now built on Ubuntu in order to provide better support for AI/ML. Make sure to run the PadoGrid Docker image version 0.9.27 or a prior version.*
+✏️ *This bundle requires PadoGrid Docker images built on Alpine, i.e., `padogrid/padogrid-base`.*
+
+![Terminal](images/terminal.png) Terminal (host OS)
 
 ```bash
 docker run --name padogrid1 -h padogrid1 -d \
    --tmpfs /run \
-   --mount type=volume,source=padogrid_home,target=/opt/padogrid \
-   -p 8888:8888 \
+   --mount type=volume,source=padogrid_haproxy,target=/opt/padogrid \
    -p 8883:8883 -p 8884:8884 -p 8885:8885 \
-   -p 3001:3001 -p 9091:9091 -p 8081:8080 \
-   -e PADOGRID_HTTPS_ENABLED=true padogrid/padogrid:0.9.27
+   -p 3001:3001 -p 9091:9091 -p 8081:8081 \
+   padogrid/padogrid-base:latest
 ```
 
 | Exposed TLS Ports | Unencrypted Ports |  For                        |
 | ----------------- | ----------------- | --------------------------- |
-| 8888              | N/A               | JupyterLab                  |
 | 8883-8885         | 1883-1885         | Mosquitto brokers           |
 | 3001              | 3000              | Grafana                     |
 | 9091              | 9090              | Prometheus                  |
 | 8081              | 8080              | Hazelcast Management Center |
 
-
-Except for JupyterLab, we will run each product with their default unecrypted ports. We will not configure JupyterLab since it is already TLS configured as a part of the container.
-
 #### 1.2. Start container - `padogrid2`
 
 Let's now launch the second container named `padogrid2`. We will use it for running clients that connect to the Mosquitto and Hazelcast clusters running on `padogrid1`.
 
+![Terminal](images/terminal.png) Terminal (host OS)
+
 ```bash
 docker run --name padogrid2 -h padogrid2 -d \
    --tmpfs /run \
-   --mount type=volume,source=padogrid_home,target=/opt/padogrid \
-   -p 8889:8888 \
-   -e PADOGRID_HTTPS_ENABLED=true padogrid/padogrid:0.9.27
+   --mount type=volume,source=padogrid_haproxy,target=/opt/padogrid \
+   padogrid/padogrid:latest
 ```
-
-| Exposed TLS Ports | Unencrypted Ports |  For                        |
-| ----------------- | ----------------- | --------------------------- |
-| 8889              | N/A               | JupyterLab                  |
 
 ---
 
 ### 2. Login to containers and install bundle
 
-You can login to each container from your shell as follows.
+You can login to each container from your shell as follows. You will need three (3) terminals as shown below.
+
+![Terminal](images/terminal.png) Terminal (host OS)
 
 ```bash
- docker exec -it padogrid1 /bin/bash
- docker exec -it padogrid2 /bin/bash
+# Terminal 1 (padogrid1)
+docker exec -it padogrid1 /bin/bash
+# Terminal 2 (padogrid1)
+docker exec -it padogrid1 /bin/bash
+# Terminal 1 (padogrid2)
+docker exec -it padogrid2 /bin/bash
 ```
 
-Or use your browser to login via JupyterLab.
+From one of the containers, install this bundle. Let's use Terminal 1 (`padogrid1`).
 
-- `padogrid1`: <https://localhost:8888/>
-- `padogrid2`: <https://localhost:8889/>
-
-Password: padogrid
-
-From one of the containers, install this bundle as follows.
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
 
 ```bash
 install_bundle -download -workspace haproxy bundle-none-tutorial-docker-haproxy
@@ -154,6 +149,8 @@ If you have logged in from the browser, then for your convenience, you can open 
 
 ✔️  Now, switch workspace to `haproxy` from each terminal. All of our work will be done in this workspace.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`), Terminal 2 (`padogrid1`), Terminal 1 (`padogrid2`)
+
 ```bash
 switch_workspace haproxy
 ```
@@ -162,19 +159,23 @@ switch_workspace haproxy
 
 ### 3. Setup containers
 
-‼️  **Do this section for both `padogrid1` and `padogrid2`**
+‼️  **Section 3 must be done for both `padogrid1` and `padogrid2`**
 
 Depending on how you installed HAProxy, you may need to enable its logging facility. If logging is not enabled, then follow the steps shown in this section to install `rsyslog` and configure HAProxy.
 
 #### 3.1. Install syslog service
 
-##### 3.1.1. Install `rsyslog`, `openrc`
+##### 3.1.1. Install `rsyslog`, `openrc`, `openssl`
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`), Terminal 1 (`padogrid2`)
 
 ```bash
-sudo apk add rsyslog openrc
+sudo apk add rsyslog openrc openssl
 ```
 
 ##### 3.1.2. Create a new file, `/etc/rsyslog.d/haproxy.cfg`.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`), Terminal 1 (`padogrid2`)
 
 ```bash
 sudo mkdir /etc/rsyslog.d
@@ -182,6 +183,8 @@ sudo vi /etc/rsyslog.d/haproxy.cfg
 ```            
 
 Add the following in `/etc/rsyslog.d/haproxy.conf` or `/etc/rsyslog.conf`:
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`), Terminal 1 (`padogrid2`)
 
 ```haproxy
 # Collect log with UDP
@@ -195,6 +198,8 @@ local0.notice /var/log/haproxy-admin.log
 ```
 
 ##### 3.1.3. Restart `rsyslog`
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`), Terminal 1 (`padogrid2`)
 
 ```bash
 # First, initialize services. This needs to be done once.
@@ -234,15 +239,19 @@ Output:
 
 ##### 3.1.4. Monitor log
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`) and Terminal 1 (`padogrid2`)
+
 ```bash
 sudo tail -f /var/log/messages
 ```
 
 #### 3.2. Install HAProxy
 
-HAProxy binary is readily available in the form of OS packages. You can also build and install HAProxy by downloading the source code from [GitHub](#https://github.com/haproxy/haproxy). 
+The HAProxy binaries are readily available in the form of OS packages. You can also build and install HAProxy by downloading the source code from [GitHub](#https://github.com/haproxy/haproxy). 
 
-For our example, we'll use a PadoGrid container, which has both Hazelcast OSS and Mosquitto installed. The latest PadoGrid container also includes HAProxy.
+For our example, we can install the latest HAProxy binary as follows.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`) and Terminal 1 (`padogrid2`)
 
 ```bash
 sudo apk add haproxy
@@ -253,6 +262,8 @@ You will not see `haproxy` log messages in `/var/log/messages` yet. We will conf
 #### 3.3. Update `/etc/hosts`
 
 We need host names to generate TLS certificates. Add the following in both containers.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`) and Terminal 1 (`padogrid2`)
 
 ```bash
 sudo vi /etc/hosts
@@ -273,6 +284,8 @@ Replace the IP addresses with your container IP addresses. For this tutorial, th
 
 ##### 4.1.1. Run Mosquitto cluster
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
 ```bash
 # Create 'mymosquitto' cluster if it does not exist
 create_cluster -product mosquitto -cluster mymosquitto
@@ -284,7 +297,22 @@ switch_cluster mymosquitto
 start_cluster
 ```
 
-##### 4.1.2. Run Hazelcast cluster and Management Center
+##### 4.1.2. Install Hazelcast
+
+The `padogrid-base` images include only Mosquitto. We need to install Hazelcast.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
+```bash
+install_padogrid -product hazelcast-oss
+install_padogrid -product hazelcast-mc
+update_padogrid -product hazelcast-oss
+update_padogrid -product hazelcast-mc
+```
+
+##### 4.1.3. Run Hazelcast cluster and Management Center
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
 
 ```bash
 # Create 'myhz' cluster if it does not exist
@@ -302,12 +330,16 @@ start_cluster -all
 
 Run the provided `generate_certs` script to generate certificates as follows. It will repeatedly ask for a PEM pass phrase. Enter any password.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
 ```bash
 cd_docker haproxy/bin_sh
 ./generate_certs
 ```
 
 You can also manually generate the certificates as follows.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
 
 ```bash
 # -- Generate CA certificate
@@ -343,6 +375,8 @@ rm client.csr
 
 View generated files
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
 ```bash
 cd_docker haproxy/tls
 tree
@@ -368,6 +402,8 @@ haproxy/tls/
 
 The `mosquitto-openssl.pem` file contains both the private key and self-signed certificate for `padogrid1`. Along with the CA certificate, `mosquitto-ca.pem`, we need it for configuring HAProxy. Place `mosquitto-openssl.pem` and `mosquitto-ca.pem` in the `/etc/ssl/certs/` directory.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
 ```bash
 cd_docker haproxy/tls/mosquitto
 sudo cp broker/mosquitto-openssl.pem ca/mosquitto-ca.pem /etc/ssl/certs/
@@ -378,6 +414,8 @@ The `client.crt` and `client.key` files are for running clients on `padogrid2`. 
 ##### 4.1.4. Configure server `/etc/haproxy/haproxy.cfg`
 
 This bundle includes HAProxy configuration files for both `padogrid1` and `padogrid2`. Place the `padogrid1/haproxy.cfg` in the HAProxy configuration directory, `/etc/haproxy/`.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
 
 ```bash
 cd_docker haproxy
@@ -467,12 +505,14 @@ backend mosquitto-s3
 
 ##### 4.1.5. Restart HAProxy
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
 ```bash
 # via service
 sudo service haproxy restart
 
 # manually
-kill -15 $(ps -eo pid,comm,args | grep haproxy | grep -v grep | awk '{print $1}')
+sudo kill -15 $(ps -eo pid,comm,args | grep haproxy | grep -v grep | awk '{print $1}')
 sudo haproxy -- /etc/haproxy/haproxy.cfg
 ```
 
@@ -483,6 +523,8 @@ You should now see HAProxy log messages in `/var/log/messages`.
 ##### 4.2.1. Place certificates
 
 Place `mosquitto-openssl.pem` and `mosquitto-ca.pem` generated from `padogrid1` in the `/etc/ssl/certs/` directory.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
 
 ```bash
 cd_docker haproxy/tls/mosquitto
@@ -496,6 +538,8 @@ Configure the `padogrid2` container as a client to the Mosquitto cluster running
 🚦 Data Flow:  **ssl://padogrid2:8883 --> ssl://padogrid1:8883 --> tcp://padogrid1:1883**
 
 Place the `padogrid2` HAProxy configuration file in the HAProxy configuration directory, `/etc/haproxy`.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
 
 ```bash
 cd_docker haproxy
@@ -585,12 +629,14 @@ backend mosquitto-s3
 
 ##### 4.2.3. Restart HAProxy
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
+
 ```bash
 # via service
 sudo service haproxy restart
 
 # manually
-kill -15 $(ps -eo pid,comm,args | grep haproxy | grep -v grep | awk '{print $1}')
+sudo kill -15 $(ps -eo pid,comm,args | grep haproxy | grep -v grep | awk '{print $1}')
 sudo haproxy -- /etc/haproxy/haproxy.cfg
 ```
 
@@ -599,6 +645,8 @@ sudo haproxy -- /etc/haproxy/haproxy.cfg
 🚦 Data Flow: **ssl://padogrid1:888x --> HAProxy (ssl://padogrid1:888x) --> tcp://padgrid1:188x**
 
 Let's create a `perf_test` app to connect to the Mosquitto cluster running on `padogrid1` via SSL/TLS.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
 
 ```bash
 create_app -product mosquitto -app perf_test -name perf_test_mosquitto
@@ -625,12 +673,16 @@ We have configured `HaMqttClient` to form a virtual cluster by connecting to the
 
 Subscribe messages.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
+
 ```bash
 cd_app perf_test_mosquitto
 vc_subscribe -config etc/pubsub.yaml -t test/#
 ```
 
 Publish messages.
+
+![Terminal 2](images/terminal.png) Terminal 2 (`padogrid2`)
 
 ```bash
 cd_app perf_test_mosquitto
@@ -646,17 +698,23 @@ We can also connect to the local ports (`tcp://localhost:1883-1885`) to reach th
 
 Subscribe messages via `tcp://localhost:1883-1885`.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
+
 ```bash
 vc_subscribe -t test/#
 ```
 
 Publish messages via `tcp://localhost:1883-1885`. 
 
+![Terminal 2](images/terminal.png) Terminal 2 (`padogrid2`)
+
 ```bash
 vc_publish -t test/topic1 -m hello
 ```
 
 The `perf_test` app by default connects to `tcp://localhost:1883-1885`. We can run it as follows.
+
+![Terminal 2](images/terminal.png) Terminal 2 (`padogrid2`)
 
 ```bash
 cd_app perf_test_mosquitto/bin_sh
@@ -672,6 +730,8 @@ If you have `vc_subscribe` still running, you should see it displaying the recei
 By default, `perf_test` is configured to connect to `570x` so we simply create and run `perf_test`.
 
 ‼️  Do NOT run a local Hazelcast cluster on `paodogrid2`. We will only be running clients on `padogrid2`.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
 
 ```bash
 # Make myhz cluster if it does not exist. We will not be starting this cluster.
@@ -691,6 +751,8 @@ cd_app perf_test_hazelcast/bin_sh
 
 You should see data being ingested into the Hazelcast cluster running on `padogrid1`. You can retrieve maps by running `read_cache`.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid2`)
+
 ```bash
 # Read eligility and profile maps
 cd_app perf_test_hazelcast/bin_sh
@@ -704,6 +766,8 @@ cd_app perf_test_hazelcast/bin_sh
 
 To run Grafana and Prometheus, we need to install them first.
 
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
+
 ```bash
 install_padogrid -product grafana-enterprise
 install_padogrid -product prometheus
@@ -712,6 +776,8 @@ update_padogrid -product prometheus
 ```
 
 We have configured HAProxy with the default ports of Grafana and Prometheus default so that we can simply start them as follows. 
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
 
 ```bash
 create_app -product hazelcast -app grafana
@@ -725,6 +791,8 @@ cd_app grafana/bin_sh
 ```
 
 Now, import the `perf_test` dashboard into Grafana. You can view the dashboard from Grafana by selecting */Home/Dashaboards/padogrid-perf_test*.
+
+![Terminal 1](images/terminal.png) Terminal 1 (`padogrid1`)
 
 ```bash
 cd_app grafana/bin_sh
