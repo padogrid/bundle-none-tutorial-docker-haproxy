@@ -65,7 +65,7 @@ The `padogrid2` container is used to run client applications that connect to the
 
 For Hazelcast, we configure HAProxy for uncrypted traffic as shown in the [Use Case](#use-case) diagram. 
 
-The Hazelcast cluster cannot be configured with TLS termination due to its clients making direct, reverse connections to the cluster members. Upon initial connection, the Hazelcast client makes direct connections to individual members based on the member information internally received from the cluster. This means the proxy is only good for the initial connection. Thereafter, the member conenctions that the client must make are controlled by the cluster.
+The Hazelcast cluster cannot be configured with TLS termination due to its clients making direct, reverse connections to the cluster members. Upon initial connection, the Hazelcast client makes direct connections to individual members based on the member information internally received from the cluster. This means the proxy is only good for the initial connection. Thereafter, the member connections that the client must make are controlled by the cluster.
 
 We configure HAProxy with unencrypted traffic, nontheless, to demonstrate the traffic flow. As with Mosquitto, the Hazelcast ports, 5701-5703 are not exposed to external applications. The clients must be running inside the container environment to access the Hazelcast cluster.
 
